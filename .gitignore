@@ -3,3 +3,7 @@ out/
 dist/
 *.vsix
 .vscode-test/
+
+# Local AI-assistant context — not part of the project, and not for publication.
+CLAUDE.md
+.claude/
