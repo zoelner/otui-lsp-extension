@@ -25,8 +25,11 @@ jobs:
           - vscode_target: linux-arm64
             runner: ubuntu-22.04-arm
             rust_target: aarch64-unknown-linux-gnu
+          # Cross-compiled from the Apple Silicon runner: the Intel macos-13 runners are
+          # scarce and being retired, so jobs pinned to them sit queued. The macOS SDK is
+          # universal, so an arm64 host links an x86_64 binary fine.
           - vscode_target: darwin-x64
-            runner: macos-13
+            runner: macos-14
             rust_target: x86_64-apple-darwin
           - vscode_target: darwin-arm64
             runner: macos-14
