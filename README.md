@@ -1,64 +1,112 @@
-# OTUI Language Support (VS Code)
+# OTUI Language Support
 
-A thin VS Code client for the [`otui-lsp`](https://github.com/zoelner/otui-lsp) language server —
-language intelligence for **OTUI/OTML** (`.otui` / `.otmod` / `.otfont`), the UI markup language of
-the OTClient game client.
+Editor support for **OTUI/OTML** (`.otui` / `.otmod` / `.otfont`), the UI markup language of the
+OTClient game client.
 
-This extension contains **no language logic** — it just launches the `otui-lsp` server binary and
-speaks LSP to it. All the smarts (diagnostics, completion, hover, go-to-definition, references,
-rename, type hierarchy, color swatches, asset links, formatting, …) live in the server.
+Works in **VS Code** and in the VS Code–compatible editors — **Cursor**, **Antigravity**,
+**Windsurf** and **VSCodium** — which install extensions from [Open VSX](https://open-vsx.org).
 
-## Prerequisites
+This extension contains **no language logic**. It launches the
+[`otui-lsp`](https://github.com/zoelner/otui-lsp) server binary and speaks LSP to it over stdio;
+all the intelligence lives in the server.
 
-Build the server from the `otui-lsp` repo:
+## Install
 
-```bash
-cd /path/to/otui-lsp
-cargo build --release      # produces target/release/otui-lsp
-```
+Install *OTUI Language Support* from your editor's extension panel. The published packages are
+**platform-specific**: each one bundles the `otui-lsp` binary for your OS and CPU, so there is
+nothing else to install and no Rust toolchain required.
 
-## Point the extension at the binary
+| Editor | Registry |
+|---|---|
+| VS Code | Visual Studio Marketplace |
+| Cursor, Antigravity, Windsurf, VSCodium | Open VSX |
 
-Either put `otui-lsp` on your `PATH`, or set the path in your VS Code settings:
+Open a **folder**, not a single file — the server indexes `.otui` files across the workspace, which
+is what lets references, rename and type hierarchy resolve into files you have not opened.
+
+### Using your own server build
+
+If you build `otui-lsp` yourself, point the extension at it:
 
 ```jsonc
 // settings.json
-"otui.server.path": "/absolute/path/to/otui-lsp/target/release/otui-lsp"
+"otui.server.path": "~/workspace/otui-lsp/target/release/otui-lsp"
 ```
 
-## Run it (from source, no packaging)
+The binary is resolved in this order, and an explicit `otui.server.path` that does not exist is a
+hard error rather than a silent fallback:
 
-```bash
-cd otui-vscode-extension
-npm install                # pulls vscode-languageclient
-```
+1. `otui.server.path`
+2. the binary bundled inside the extension
+3. `otui-lsp` on your `PATH`
 
-Then open this folder in VS Code and press **F5** — that launches an *Extension Development Host*
-with the extension loaded. Open a folder containing `.otui` files (open the **folder**, not a single
-file, so the server can index the whole workspace) and start editing.
-
-## Package it (optional, to install as a .vsix)
-
-```bash
-npm install -g @vscode/vsce
-vsce package               # produces otui-vscode-extension-0.0.1.vsix
-code --install-extension otui-vscode-extension-0.0.1.vsix
-```
-
-## What you get
+## Features
 
 Diagnostics, completion (properties / `$state` / anchors / `@events`), hover, go-to-definition,
 type definition / implementation / **type hierarchy** (the `Name < Base` graph), find references,
-rename, document & workspace symbols, semantic highlighting, **color swatches** (`#rgb`/`rgb()`/named
-colors in color properties), **clickable asset links** (`image-source:`), folding, document/range
-formatting, and document highlight — all resolving **workspace-wide** across closed `.otui` files.
+rename, document & workspace symbols, semantic highlighting, **color swatches**, **clickable asset
+links** (`image-source:`), folding, document/range formatting, and document highlight — all
+resolving **workspace-wide** across closed files.
+
+Syntax highlighting comes from two layers: a TextMate grammar colors the file the moment it opens,
+and the server's semantic tokens refine it once the language server attaches. Embedded Lua in
+`@event:`, `!expr:` and `&alias:` values is highlighted with the editor's Lua grammar.
 
 ## Settings
 
 | Setting | Default | Description |
 |---|---|---|
-| `otui.server.path` | `otui-lsp` | Path to the `otui-lsp` binary (on `PATH`, or an absolute path to a local build). |
+| `otui.server.path` | *(unset)* | Absolute path to an `otui-lsp` binary. Supports `~` and `${workspaceFolder}`. |
 | `otui.trace.server` | `off` | Trace LSP traffic for debugging (`off` / `messages` / `verbose`). |
+
+## Commands
+
+| Command | Description |
+|---|---|
+| **OTUI: Restart Language Server** | Restart `otui-lsp` without reloading the window. |
+| **OTUI: Show Language Server Output** | Open the server's log channel. |
+
+## Development
+
+Requires the current Node LTS (see `.nvmrc`).
+
+```bash
+npm install
+npm run check     # typecheck
+npm test          # grammar + binary-resolution tests
+npm run build     # bundle to dist/ with esbuild
+```
+
+Press **F5** to launch an Extension Development Host with `sample/` open. Have `otui-lsp` on your
+`PATH`, or set `otui.server.path`.
+
+### Version pinning, on purpose
+
+Three dependencies are deliberately held at a floor rather than kept latest, because they describe
+the **oldest** editor we support — and the forks lag upstream VS Code:
+
+- `engines.vscode` — the oldest editor that can install the extension.
+- `@types/vscode` — pinned **exactly** (no caret). A caret would resolve to the newest types and let
+  us compile against APIs that the floor does not have.
+- esbuild's `target` — the extension host's Node, not the Node we build with.
+
+`npm run check` is what enforces this: it typechecks against the floor's API surface.
+
+### Releasing
+
+Releases are cut by tag. `.github/workflows/release.yml` builds `otui-lsp` natively for six target
+platforms, packages one VSIX per platform, and publishes to **both** registries.
+
+```bash
+git tag v0.1.0 && git push --tags
+```
+
+The server revision that gets built is pinned by `otuiLsp.ref` in `package.json`.
+
+One-time setup:
+
+- Create a Visual Studio Marketplace publisher and store a PAT as the `VSCE_PAT` secret.
+- Create the Open VSX namespace (`npx ovsx create-namespace zoelner`) and store a PAT as `OVSX_PAT`.
 
 ## License
 
