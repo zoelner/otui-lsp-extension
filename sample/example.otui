@@ -1,0 +1,28 @@
+// A demo OTUI file — open this in the Extension Development Host to exercise the server.
+
+MainWindow < UIWindow
+  id: mainWindow
+  size: 200 150
+  background-color: #2b2b2b
+  color: red
+
+  Panel
+    id: content
+    anchors.fill: parent
+    image-source: /images/panel.png
+
+    Button
+      id: okButton
+      text: OK
+      anchors.top: content.top
+      anchors.horizontalCenter: parent.horizontalCenter
+      color: #ff8800
+
+      $hover
+        color: yellow
+
+      widht: 80
+
+  Label < UILabel
+    id: title
+    anchors.top: mainWindow.top
