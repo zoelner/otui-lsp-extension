@@ -67,6 +67,26 @@
         }
       }
     ],
+    "semanticTokenScopes": [
+      {
+        "language": "otui",
+        "scopes": {
+          "comment": ["comment.line.otui"],
+          "type": ["entity.name.type.style.otui"],
+          "type.defaultLibrary": ["support.class.widget.otui"],
+          "class": ["entity.other.inherited-class.otui"],
+          "property": ["support.type.property-name.otui"],
+          "event": ["entity.name.function.tag.otui"],
+          "enumMember": ["variable.parameter.state.otui"],
+          "enumMember.defaultLibrary": ["constant.language.state.otui"],
+          "variable": ["variable.other.otui"],
+          "string": ["string.unquoted.otui"],
+          "number": ["constant.numeric.otui"],
+          "operator": ["keyword.operator.negation.otui"],
+          "keyword": ["constant.language.otui"]
+        }
+      }
+    ],
     "commands": [
       {
         "command": "otui.restartServer",
