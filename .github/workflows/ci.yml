@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: gate (typecheck + grammar tests + package)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # `@types/vscode` is pinned to the `engines.vscode` floor, so this fails if we
+      # reach for an API newer than the oldest editor we claim to support.
+      - name: Typecheck
+        run: npm run check
+
+      - name: Grammar regression tests
+        run: npm test
+
+      # Packaging without a bundled binary is the "resolve from PATH" build; it proves
+      # the manifest and .vscodeignore are valid before a tag ever gets pushed.
+      - name: Package (no bundled server)
+        run: npx vsce package --out otui-ci.vsix
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: otui-ci-vsix
+          path: otui-ci.vsix

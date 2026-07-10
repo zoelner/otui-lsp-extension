@@ -1,0 +1,182 @@
+name: Release
+
+# Tag a version to cut a release:  git tag v0.1.0 && git push --tags
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # One native build of the otui-lsp server per VS Code target platform. The server
+  # lives in its own repo; `otuiLsp.ref` in package.json pins the commit we ship.
+  build-server:
+    name: server (${{ matrix.vscode_target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - vscode_target: linux-x64
+            runner: ubuntu-22.04
+            rust_target: x86_64-unknown-linux-gnu
+          - vscode_target: linux-arm64
+            runner: ubuntu-22.04-arm
+            rust_target: aarch64-unknown-linux-gnu
+          - vscode_target: darwin-x64
+            runner: macos-13
+            rust_target: x86_64-apple-darwin
+          - vscode_target: darwin-arm64
+            runner: macos-14
+            rust_target: aarch64-apple-darwin
+          - vscode_target: win32-x64
+            runner: windows-2022
+            rust_target: x86_64-pc-windows-msvc
+          # Cross-compiled from the x64 runner; the MSVC arm64 toolchain ships with it.
+          - vscode_target: win32-arm64
+            runner: windows-2022
+            rust_target: aarch64-pc-windows-msvc
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve the pinned otui-lsp revision
+        id: server
+        shell: bash
+        run: |
+          echo "repo=$(node -p "require('./package.json').otuiLsp.repository")" >> "$GITHUB_OUTPUT"
+          echo "ref=$(node -p "require('./package.json').otuiLsp.ref")" >> "$GITHUB_OUTPUT"
+
+      - name: Check out otui-lsp
+        uses: actions/checkout@v4
+        with:
+          repository: zoelner/otui-lsp
+          ref: ${{ steps.server.outputs.ref }}
+          path: otui-lsp
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: otui-lsp
+
+      - name: Build otui-lsp
+        shell: bash
+        working-directory: otui-lsp
+        run: cargo build --release --locked -p otui-lsp-server --bin otui-lsp --target ${{ matrix.rust_target }}
+
+      - name: Stage the binary
+        shell: bash
+        run: |
+          mkdir -p server
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "otui-lsp/target/${{ matrix.rust_target }}/release/otui-lsp.exe" server/
+          else
+            cp "otui-lsp/target/${{ matrix.rust_target }}/release/otui-lsp" server/
+            strip server/otui-lsp || true
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-${{ matrix.vscode_target }}
+          path: server/
+          if-no-files-found: error
+
+  # One VSIX per platform. Packaging is platform-agnostic, so it all happens on Linux:
+  # `--target` only stamps the manifest, it does not cross-build anything.
+  package:
+    name: package
+    needs: build-server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: server-*
+          path: servers
+
+      - name: Package every target
+        run: |
+          set -euo pipefail
+          mkdir -p vsix
+          for target in linux-x64 linux-arm64 darwin-x64 darwin-arm64 win32-x64 win32-arm64; do
+            rm -rf server && mkdir server
+            cp "servers/server-$target"/* server/
+            # upload-artifact does not preserve file permissions, but vsce *does* store the
+            # mode in the zip — so restore the exec bit here or the installed binary is 644.
+            case "$target" in
+              win32-*) ;;
+              *) chmod +x server/otui-lsp ;;
+            esac
+            npx vsce package --target "$target" --out "vsix/otui-$target.vsix"
+          done
+          ls -la vsix
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: vsix/
+
+      - name: Attach the VSIXs to the GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: vsix/*.vsix
+          generate_release_notes: true
+
+  # Both registries, because the VS Code Marketplace is not reachable from the forks:
+  # Cursor, Antigravity, Windsurf and VSCodium all resolve extensions through Open VSX.
+  publish:
+    name: publish
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    # Job-level, so the steps' `if:` can read them — a step cannot see its own `env:`.
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix
+          path: vsix
+
+      - name: Publish to the VS Code Marketplace
+        if: env.VSCE_PAT != ''
+        run: |
+          set -euo pipefail
+          for vsix in vsix/*.vsix; do
+            npx vsce publish --packagePath "$vsix"
+          done
+
+      # Open VSX is what Cursor, Antigravity, Windsurf and VSCodium actually query.
+      - name: Publish to Open VSX
+        if: env.OVSX_PAT != ''
+        run: |
+          set -euo pipefail
+          for vsix in vsix/*.vsix; do
+            npx ovsx publish --packagePath "$vsix"
+          done
