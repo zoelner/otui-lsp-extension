@@ -1,14 +1,18 @@
-.gitignore
+# Everything the extension needs at runtime is bundled into dist/ by esbuild, so the
+# sources, the toolchain and node_modules all stay out of the VSIX.
+# The server/ directory is NOT ignored — the platform-specific VSIX carries the binary.
+.github/**
 .vscode/**
 node_modules/**
-!node_modules/vscode-languageclient/**
-!node_modules/vscode-languageserver-protocol/**
-!node_modules/vscode-languageserver-types/**
-!node_modules/vscode-jsonrpc/**
-!node_modules/semver/**
-!node_modules/minimatch/**
-!node_modules/balanced-match/**
-!node_modules/brace-expansion/**
-!node_modules/concat-map/**
-!node_modules/lru-cache/**
+out/**
+sample/**
+src/**
+test/**
+**/*.ts
 **/*.map
+.gitignore
+.nvmrc
+CLAUDE.md
+esbuild.mjs
+package-lock.json
+tsconfig.json

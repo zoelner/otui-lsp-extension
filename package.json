@@ -1,26 +1,45 @@
 {
-  "name": "otui-vscode-extension",
+  "name": "otui",
   "displayName": "OTUI Language Support",
-  "description": "Language support for OTUI/OTML (OTClient UI markup) — a thin VS Code client for the otui-lsp language server.",
-  "version": "0.0.1",
+  "description": "Language support for OTUI/OTML (OTClient UI markup) — diagnostics, completion, hover, go-to-definition, rename, formatting and color swatches, powered by the otui-lsp language server.",
+  "version": "0.1.0",
   "publisher": "zoelner",
   "license": "MIT OR Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/zoelner/otui-vscode-extension"
   },
+  "bugs": {
+    "url": "https://github.com/zoelner/otui-lsp/issues"
+  },
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.91.0"
   },
   "categories": [
     "Programming Languages",
     "Linters",
     "Formatters"
   ],
-  "activationEvents": [
-    "workspaceContains:**/*.otui"
+  "keywords": [
+    "otui",
+    "otml",
+    "otclient",
+    "language server"
   ],
-  "main": "./extension.js",
+  "main": "./dist/extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "The extension launches the otui-lsp server binary, whose location a workspace could influence."
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "The otui-lsp server is a native binary that reads files from disk."
+    }
+  },
   "contributes": {
     "languages": [
       {
@@ -37,14 +56,41 @@
         "configuration": "./language-configuration.json"
       }
     ],
+    "grammars": [
+      {
+        "language": "otui",
+        "scopeName": "source.otui",
+        "path": "./syntaxes/otui.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.lua": "lua",
+          "meta.embedded.line.lua": "lua"
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "otui.restartServer",
+        "title": "Restart Language Server",
+        "category": "OTUI"
+      },
+      {
+        "command": "otui.showServerLog",
+        "title": "Show Language Server Output",
+        "category": "OTUI"
+      }
+    ],
     "configuration": {
       "type": "object",
       "title": "OTUI",
       "properties": {
         "otui.server.path": {
-          "type": "string",
-          "default": "otui-lsp",
-          "markdownDescription": "Path to the `otui-lsp` server binary. Defaults to `otui-lsp` on your `PATH`. For a local build, set the absolute path to `target/release/otui-lsp`."
+          "type": [
+            "string",
+            "null"
+          ],
+          "scope": "machine-overridable",
+          "default": null,
+          "markdownDescription": "Absolute path to an `otui-lsp` server binary. When unset, the extension uses the binary bundled with it, falling back to `otui-lsp` on your `PATH`. Supports `~` and `${workspaceFolder}`."
         },
         "otui.trace.server": {
           "type": "string",
@@ -53,16 +99,36 @@
             "messages",
             "verbose"
           ],
+          "scope": "window",
           "default": "off",
-          "description": "Trace the LSP communication between VS Code and the otui-lsp server (for debugging)."
+          "description": "Trace the LSP messages exchanged with the otui-lsp server (for debugging)."
         }
       }
     }
   },
+  "scripts": {
+    "vscode:prepublish": "npm run check && node esbuild.mjs --production",
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "check": "tsc --noEmit",
+    "test": "node --test test/*.test.mjs",
+    "package": "vsce package"
+  },
   "dependencies": {
-    "vscode-languageclient": "^9.0.1"
+    "vscode-languageclient": "^10.1.0"
   },
   "devDependencies": {
-    "@types/vscode": "^1.75.0"
+    "@types/node": "^20.19.9",
+    "@types/vscode": "1.91.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.1",
+    "ovsx": "^1.0.2",
+    "typescript": "^7.0.2",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2"
+  },
+  "otuiLsp": {
+    "repository": "https://github.com/zoelner/otui-lsp",
+    "ref": "main"
   }
 }

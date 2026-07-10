@@ -1,0 +1,239 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "OTUI",
+  "scopeName": "source.otui",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#style-header" },
+    { "include": "#state-selector" },
+    { "include": "#lua-block-property" },
+    { "include": "#alias-hash-property" },
+    { "include": "#lua-inline-property" },
+    { "include": "#anchor-property" },
+    { "include": "#id-property" },
+    { "include": "#block-scalar-property" },
+    { "include": "#property" },
+    { "include": "#list-item" },
+    { "include": "#container-tag" }
+  ],
+  "repository": {
+    "comment": {
+      "comment": "OTML comments are line-start only; a trailing `//` or `#` after real tokens is data.",
+      "match": "^\\s*(?://|#).*$",
+      "name": "comment.line.otui"
+    },
+
+    "style-header": {
+      "comment": "`Name < Base` — the base is the rest of the line, trimmed. Split into two ordered rules rather than one rule with nested capture patterns: inside `captures`, `^` anchors to the line, not to the captured group, so a `^UI` test there never fires.",
+      "patterns": [
+        {
+          "comment": "A base beginning with `UI` resolves to a built-in native widget class.",
+          "match": "^\\s*([A-Za-z_][A-Za-z0-9_\\-]*)\\s*(<)\\s*(UI[A-Za-z0-9_]*)(.*?)\\s*$",
+          "captures": {
+            "1": { "name": "entity.name.type.style.otui" },
+            "2": { "name": "keyword.operator.inheritance.otui" },
+            "3": { "name": "support.class.widget.otui" },
+            "4": { "name": "entity.other.inherited-class.otui" }
+          }
+        },
+        {
+          "comment": "Anything else is a file-defined style.",
+          "match": "^\\s*([A-Za-z_][A-Za-z0-9_\\-]*)\\s*(<)\\s*(\\S.*?)\\s*$",
+          "captures": {
+            "1": { "name": "entity.name.type.style.otui" },
+            "2": { "name": "keyword.operator.inheritance.otui" },
+            "3": { "name": "entity.other.inherited-class.otui" }
+          }
+        }
+      ]
+    },
+
+    "state-selector": {
+      "comment": "`$hover:` / `$!disabled $on:` state blocks.",
+      "match": "^\\s*(\\$)((?:\\s*!?[A-Za-z_][A-Za-z0-9_\\-]*)+)\\s*(:)",
+      "captures": {
+        "1": { "name": "punctuation.definition.state.otui" },
+        "2": { "patterns": [{ "include": "#state-names" }] },
+        "3": { "name": "punctuation.separator.key-value.otui" }
+      }
+    },
+
+    "state-names": {
+      "patterns": [
+        { "match": "!", "name": "keyword.operator.negation.otui" },
+        {
+          "comment": "The closed set of engine-recognised states; anything else never matches at runtime.",
+          "match": "\\b(?:active|focus|hover|pressed|checked|disabled|on|first|middle|last|alternate|dragging|hidden|mobile)\\b",
+          "name": "constant.language.state.otui"
+        },
+        { "match": "\\b[A-Za-z_][A-Za-z0-9_\\-]*\\b", "name": "variable.parameter.state.otui" }
+      ]
+    },
+
+    "lua-block-property": {
+      "comment": "`@tag: |`, `&tag: |-`, `!tag: |+` — a block scalar whose body is Lua. The `while` backreference keeps the region open for lines indented deeper than the key.",
+      "begin": "^(\\s*)([@&!])([A-Za-z_][A-Za-z0-9_\\-]*)\\s*(:)\\s*(\\|[-+]?)\\s*$",
+      "while": "^(?:\\s*$|\\1[ \\t]+)",
+      "beginCaptures": {
+        "2": { "name": "punctuation.definition.tag.otui" },
+        "3": { "name": "entity.name.function.tag.otui" },
+        "4": { "name": "punctuation.separator.key-value.otui" },
+        "5": { "name": "keyword.control.block-scalar.otui" }
+      },
+      "contentName": "meta.embedded.block.lua",
+      "patterns": [{ "include": "source.lua" }]
+    },
+
+    "alias-hash-property": {
+      "comment": "§2.6 carve-out: an `&tag:` value starting with `#` is pushed verbatim as a string, never Lua-evaluated.",
+      "match": "^\\s*(&)([A-Za-z_][A-Za-z0-9_\\-]*)\\s*(:)\\s*(#.*)$",
+      "captures": {
+        "1": { "name": "punctuation.definition.tag.otui" },
+        "2": { "name": "variable.other.alias.otui" },
+        "3": { "name": "punctuation.separator.key-value.otui" },
+        "4": {
+          "patterns": [
+            { "include": "#color" },
+            { "match": ".+", "name": "string.unquoted.otui" }
+          ]
+        }
+      }
+    },
+
+    "lua-inline-property": {
+      "comment": "`@tag: <lua>` / `&tag: <lua>` / `!tag: <lua>` — the whole rest of the line is one raw Lua value.",
+      "begin": "^\\s*([@&!])([A-Za-z_][A-Za-z0-9_\\-]*)\\s*(:)",
+      "end": "$",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.otui" },
+        "2": { "name": "entity.name.function.tag.otui" },
+        "3": { "name": "punctuation.separator.key-value.otui" }
+      },
+      "contentName": "meta.embedded.line.lua",
+      "patterns": [{ "include": "source.lua" }]
+    },
+
+    "anchor-property": {
+      "comment": "`anchors.<edge>: <target>` — only the literal `anchors` object is an anchor.",
+      "match": "^\\s*(anchors)(\\.)([A-Za-z_][A-Za-z0-9_\\-]*)\\s*(:)\\s*(\\S.*?)?\\s*$",
+      "captures": {
+        "1": { "name": "support.type.anchor.otui" },
+        "2": { "name": "punctuation.accessor.otui" },
+        "3": { "name": "support.type.property-name.otui" },
+        "4": { "name": "punctuation.separator.key-value.otui" },
+        "5": { "name": "variable.other.anchor-target.otui" }
+      }
+    },
+
+    "id-property": {
+      "comment": "`id:` names a widget — a definition target, not a generic property.",
+      "match": "^\\s*(id)\\s*(:)\\s*(\\S.*?)?\\s*$",
+      "captures": {
+        "1": { "name": "keyword.other.id.otui" },
+        "2": { "name": "punctuation.separator.key-value.otui" },
+        "3": { "name": "entity.name.label.otui" }
+      }
+    },
+
+    "block-scalar-property": {
+      "comment": "`key: |` on a plain property — the body is literal text, not Lua.",
+      "begin": "^(\\s*)([A-Za-z_][A-Za-z0-9_\\-]*)\\s*(:)\\s*(\\|[-+]?)\\s*$",
+      "while": "^(?:\\s*$|\\1[ \\t]+)",
+      "beginCaptures": {
+        "2": { "name": "support.type.property-name.otui" },
+        "3": { "name": "punctuation.separator.key-value.otui" },
+        "4": { "name": "keyword.control.block-scalar.otui" }
+      },
+      "contentName": "string.unquoted.block.otui"
+    },
+
+    "property": {
+      "begin": "^\\s*([A-Za-z_][A-Za-z0-9_\\-]*)\\s*(:)",
+      "end": "$",
+      "beginCaptures": {
+        "1": { "name": "support.type.property-name.otui" },
+        "2": { "name": "punctuation.separator.key-value.otui" }
+      },
+      "contentName": "meta.value.otui",
+      "patterns": [{ "include": "#value" }]
+    },
+
+    "list-item": {
+      "begin": "^\\s*(-)(?=\\s|$)",
+      "end": "$",
+      "beginCaptures": { "1": { "name": "punctuation.definition.list.otui" } },
+      "patterns": [{ "include": "#value" }]
+    },
+
+    "container-tag": {
+      "comment": "A colon-less, `<`-less line is a bare widget tag.",
+      "match": "^\\s*([A-Za-z_][A-Za-z0-9_\\-]*)\\s*$",
+      "captures": { "1": { "name": "entity.name.tag.otui" } }
+    },
+
+    "value": {
+      "patterns": [
+        { "include": "#inline-array" },
+        { "include": "#scalar" },
+        { "match": "\\|[-+]?", "name": "keyword.control.block-scalar.otui" },
+        {
+          "comment": "Anything else is an untyped scalar (`red`, `/images/panel.png`, `10 // x`) — a `//` or `,` inside it is data, not a comment or a separator.",
+          "match": "\\S+",
+          "name": "string.unquoted.otui"
+        }
+      ]
+    },
+
+    "inline-array": {
+      "begin": "\\[",
+      "end": "\\]",
+      "beginCaptures": { "0": { "name": "punctuation.definition.array.begin.otui" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.array.end.otui" } },
+      "name": "meta.array.otui",
+      "patterns": [
+        { "match": ",", "name": "punctuation.separator.array.otui" },
+        { "include": "#scalar" },
+        { "match": "[^\\s,\\]]+", "name": "string.unquoted.otui" }
+      ]
+    },
+
+    "scalar": {
+      "comment": "Typed literals. Colors precede numbers so `#ff0000` is not read as `#` + digits.",
+      "patterns": [
+        { "include": "#color" },
+        { "include": "#string" },
+        { "match": "~", "name": "constant.language.null.otui" },
+        { "match": "\\$[A-Za-z_][A-Za-z0-9_.\\-]*", "name": "variable.other.otui" },
+        { "match": "\\b(?:true|false)\\b", "name": "constant.language.boolean.otui" },
+        { "match": "-?\\b\\d+(?:\\.\\d+)?%?", "name": "constant.numeric.otui" }
+      ]
+    },
+
+    "color": {
+      "patterns": [
+        { "match": "#[0-9a-fA-F]{8}\\b", "name": "constant.other.color.rgba.otui" },
+        { "match": "#[0-9a-fA-F]{6}\\b", "name": "constant.other.color.rgb.otui" },
+        { "match": "#[0-9a-fA-F]{4}\\b", "name": "constant.other.color.rgba.otui" },
+        { "match": "#[0-9a-fA-F]{3}\\b", "name": "constant.other.color.rgb.otui" },
+        { "match": "\\b(?:rgba?|hsla?)\\([^)\\n]*\\)", "name": "constant.other.color.function.otui" }
+      ]
+    },
+
+    "string": {
+      "patterns": [
+        {
+          "begin": "\"",
+          "end": "\"",
+          "name": "string.quoted.double.otui",
+          "patterns": [{ "match": "\\\\.", "name": "constant.character.escape.otui" }]
+        },
+        {
+          "begin": "'",
+          "end": "'",
+          "name": "string.quoted.single.otui",
+          "patterns": [{ "match": "\\\\.", "name": "constant.character.escape.otui" }]
+        }
+      ]
+    }
+  }
+}
