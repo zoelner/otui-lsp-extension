@@ -21,6 +21,11 @@ Windsurf, VSCodium).
 - Declared `untrustedWorkspaces` and `virtualWorkspaces` capabilities.
 - Regression tests for the grammar (run against VS Code's own TextMate engine) and for the server
   binary resolution chain.
+- A Lua→OTUI go-to-definition bridge: with `otui.lua.enable` (default on), the server is attached to
+  `.lua` files so **Go to Definition** on `getChildById('id')` jumps to the matching `id:` in the
+  sibling `.otui`, following style inheritance across files. The server serves only definition on
+  Lua; a client-side middleware drops any diagnostics it might emit for `.lua`, so an OTUI parser is
+  never allowed to flag valid Lua, and the Lua language server's own diagnostics are untouched.
 
 ### Changed
 

@@ -57,7 +57,22 @@ and the server's semantic tokens refine it once the language server attaches. Em
 | Setting | Default | Description |
 |---|---|---|
 | `otui.server.path` | *(unset)* | Absolute path to an `otui-lsp` binary. Supports `~` and `${workspaceFolder}`. |
+| `otui.lua.enable` | `true` | Attach the server to `.lua` files for the Lua→OTUI go-to-definition bridge (see below). |
 | `otui.trace.server` | `off` | Trace LSP traffic for debugging (`off` / `messages` / `verbose`). |
+
+## The Lua ↔ OTUI bridge
+
+An OTClient module is two files: `foo.otui` draws the UI and names elements (`id: closeButton`),
+`foo.lua` drives it (`getChildById('closeButton')`). With the bridge on, **Go to Definition** on a
+`getChildById('id')` in a `.lua` jumps to the matching `id:` in the `.otui` — including ids the
+widget **inherits** from a base style in another file (e.g. a `MiniWindow`'s `closeButton`).
+
+The server serves *only* definition on Lua files — never diagnostics, completion or hover, which
+stay with your Lua language server. Both go-to-definition results (the Lua target and the `.otui`
+declaration) show side by side; that is the feature, not a conflict. Runtime-built ids
+(`'row_' .. i`) have no static target and intentionally resolve to nothing.
+
+Turn the bridge off with `"otui.lua.enable": false` to skip indexing the workspace's Lua files.
 
 ## Commands
 

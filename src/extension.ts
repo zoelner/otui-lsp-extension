@@ -14,7 +14,15 @@ const CLIENT_ID = "otui";
 const CLIENT_NAME = "OTUI Language Server";
 
 // Documents the server understands. `.otmod` / `.otfont` share the `otui` language id.
-const WATCHED_FILES = "**/*.{otui,otmod,otfont}";
+const OTUI_WATCH = "**/*.{otui,otmod,otfont}";
+// Lua files carry the other half of a module — the server resolves `getChildById('x')` in a `.lua`
+// to the `id: x` in its sibling `.otui`. Watched only when the Lua bridge is enabled.
+const LUA_WATCH = "**/*.lua";
+
+/** Whether to attach the server to `.lua` files for the `.lua` → `.otui` go-to-definition bridge. */
+function luaBridgeEnabled(): boolean {
+  return vscode.workspace.getConfiguration("otui").get<boolean>("lua.enable", true);
+}
 
 let client: LanguageClient | undefined;
 let output: vscode.LogOutputChannel;
@@ -28,11 +36,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("otui.restartServer", () => restart(context)),
   );
 
-  // Changing where the server lives means the running process is stale.
+  // The server path and the Lua bridge are both baked into the client at construction (the binary
+  // to spawn, and the document selector), so changing either means the running client is stale.
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(async (event) => {
-      if (event.affectsConfiguration("otui.server.path")) {
-        output.info("otui.server.path changed — restarting the server.");
+      if (
+        event.affectsConfiguration("otui.server.path") ||
+        event.affectsConfiguration("otui.lua.enable")
+      ) {
+        output.info("OTUI configuration changed — restarting the server.");
         await restart(context);
       }
     }),
@@ -59,14 +71,33 @@ async function start(context: vscode.ExtensionContext): Promise<void> {
   const run = { command: server.command, transport: TransportKind.stdio };
   const serverOptions: ServerOptions = { run, debug: run };
 
+  const luaEnabled = luaBridgeEnabled();
+  output.info(`Lua bridge (.lua → .otui go-to-definition): ${luaEnabled ? "on" : "off"}`);
+
+  const documentSelector = [{ scheme: "file", language: "otui" }];
+  const watchers = [vscode.workspace.createFileSystemWatcher(OTUI_WATCH)];
+  if (luaEnabled) {
+    documentSelector.push({ scheme: "file", language: "lua" });
+    watchers.push(vscode.workspace.createFileSystemWatcher(LUA_WATCH));
+  }
+
   const clientOptions: LanguageClientOptions = {
-    documentSelector: [{ scheme: "file", language: "otui" }],
+    documentSelector,
     outputChannel: output,
     synchronize: {
       // Feeds the server `workspace/didChangeWatchedFiles` so it re-indexes files that
       // change on disk while closed — this is what makes workspace-wide references,
       // rename and type hierarchy resolve against files no editor has open.
-      fileEvents: vscode.workspace.createFileSystemWatcher(WATCHED_FILES),
+      fileEvents: watchers,
+    },
+    middleware: {
+      // The server serves only go-to-definition on `.lua` — never diagnostics. Enforce that
+      // client-side so a server without the language guard cannot spray OTUI parse errors over
+      // valid Lua. This filters only *our* server's diagnostics; the Lua language server publishes
+      // through its own client and is untouched.
+      handleDiagnostics(uri, diagnostics, next) {
+        next(uri, uri.path.endsWith(".lua") ? [] : diagnostics);
+      },
     },
   };
 

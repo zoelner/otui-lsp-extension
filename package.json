@@ -27,6 +27,9 @@
     "language server"
   ],
   "main": "./dist/extension.js",
+  "activationEvents": [
+    "workspaceContains:**/*.otui"
+  ],
   "extensionKind": [
     "workspace"
   ],
@@ -122,6 +125,12 @@
           "scope": "window",
           "default": "off",
           "description": "Trace the LSP messages exchanged with the otui-lsp server (for debugging)."
+        },
+        "otui.lua.enable": {
+          "type": "boolean",
+          "scope": "window",
+          "default": true,
+          "markdownDescription": "Attach the server to `.lua` files so **Go to Definition** on `getChildById('id')` jumps to the matching `id:` in the sibling `.otui`. The server serves only definition on Lua — never diagnostics, completion or hover, which stay with your Lua language server. Turn off to skip indexing the workspace's Lua files."
         }
       }
     }
