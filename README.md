@@ -45,8 +45,11 @@ hard error rather than a silent fallback:
 Diagnostics, completion (properties / `$state` / anchors / `@events`), hover, go-to-definition,
 type definition / implementation / **type hierarchy** (the `Name < Base` graph), find references,
 rename, document & workspace symbols, semantic highlighting, **color swatches**, **clickable asset
-links** (`image-source:`), folding, document/range formatting, and document highlight — all
-resolving **workspace-wide** across closed files.
+links** (`image-source:`), inlay hints, folding, document/range formatting, and document highlight —
+all resolving **workspace-wide** across closed files.
+
+A style that others derive from carries a **code lens** — *`3 widget(s) inherit this style`* — and
+clicking it peeks the inheriting widgets.
 
 Syntax highlighting comes from two layers: a TextMate grammar colors the file the moment it opens,
 and the server's semantic tokens refine it once the language server attaches. Embedded Lua in

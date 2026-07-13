@@ -34,6 +34,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.commands.registerCommand("otui.showServerLog", () => output.show()),
     vscode.commands.registerCommand("otui.restartServer", () => restart(context)),
+    vscode.commands.registerCommand("otui.showSubtypes", showSubtypes),
   );
 
   // The server path and the Lua bridge are both baked into the client at construction (the binary
@@ -128,6 +129,56 @@ async function stop(): Promise<void> {
 async function restart(context: vscode.ExtensionContext): Promise<void> {
   await stop();
   await start(context);
+}
+
+/**
+ * Handler for the `N widget(s) inherit this style` code lens.
+ *
+ * The server cannot invoke `editor.action.showReferences` itself: LSP carries `Command.arguments`
+ * as raw JSON, while that built-in command demands real `Uri` / `Position` / `Location` instances.
+ * So the server emits its own `otui.showSubtypes` with `[uri, position]` and the conversion happens
+ * here — the same split rust-analyzer uses. The command id and the argument shape are the server's
+ * contract (`code_lens` in `otui-lsp-server`); they move together or not at all.
+ */
+async function showSubtypes(
+  uriArg: string,
+  positionArg: { line: number; character: number },
+): Promise<void> {
+  const uri = vscode.Uri.parse(uriArg);
+  const position = new vscode.Position(positionArg.line, positionArg.character);
+
+  // The derivations are never collected by the lens itself — the server already answers
+  // `textDocument/implementation` with exactly them, so ask for them on click.
+  const results =
+    (await vscode.commands.executeCommand<(vscode.Location | vscode.LocationLink)[]>(
+      "vscode.executeImplementationProvider",
+      uri,
+      position,
+    )) ?? [];
+
+  // The server replies with plain `Location`s, but the provider contract also permits
+  // `LocationLink`s, and the peek view only takes `Location`s.
+  const locations = results.map((result) =>
+    "targetUri" in result
+      ? new vscode.Location(result.targetUri, result.targetSelectionRange ?? result.targetRange)
+      : result,
+  );
+
+  if (locations.length === 0) {
+    // The lens counted from the workspace index; an empty answer here means that index is still
+    // being built, so the count and the peek can briefly disagree.
+    void vscode.window.showInformationMessage(
+      "No inheriting widgets resolved yet — the workspace may still be indexing.",
+    );
+    return;
+  }
+
+  await vscode.commands.executeCommand(
+    "editor.action.showReferences",
+    uri,
+    position,
+    locations,
+  );
 }
 
 async function reportMissingServer(error: unknown): Promise<void> {

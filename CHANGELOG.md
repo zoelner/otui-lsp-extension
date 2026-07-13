@@ -21,6 +21,11 @@ Windsurf, VSCodium).
 - Declared `untrustedWorkspaces` and `virtualWorkspaces` capabilities.
 - Regression tests for the grammar (run against VS Code's own TextMate engine) and for the server
   binary resolution chain.
+- A clickable **code lens** on any style others derive from — *`3 widget(s) inherit this style`*.
+  Clicking it peeks the inheriting widgets. The lens itself comes from the server, but its command
+  (`otui.showSubtypes`) has to be registered here: LSP carries a command's arguments as raw JSON,
+  while VS Code's peek view demands real `Uri` / `Position` / `Location` instances, so the client is
+  the only place that conversion can happen.
 - A Lua→OTUI go-to-definition bridge: with `otui.lua.enable` (default on), the server is attached to
   `.lua` files so **Go to Definition** on `getChildById('id')` jumps to the matching `id:` in the
   sibling `.otui`, following style inheritance across files. The server serves only definition on
