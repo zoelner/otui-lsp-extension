@@ -13,6 +13,7 @@ test/**
 .gitignore
 .nvmrc
 CLAUDE.md
+HANDOFF-*.md
 esbuild.mjs
 package-lock.json
 tsconfig.json
