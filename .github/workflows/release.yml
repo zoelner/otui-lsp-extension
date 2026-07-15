@@ -59,8 +59,20 @@ jobs:
           ref: ${{ steps.server.outputs.ref }}
           path: otui-lsp
 
-      - uses: dtolnay/rust-toolchain@stable
+      # The server pins its compiler in `rust-toolchain.toml`, so a `cargo` run inside otui-lsp/
+      # uses *that* channel — not whatever `@stable` installs. Install the pinned channel itself and
+      # add the cross-compile target to it, or a cross build (darwin-x64, win32-arm64) fails with
+      # `can't find crate for core`: the target was added to stable, but 1.97.x does the building.
+      - name: Read the server's pinned toolchain
+        id: toolchain
+        shell: bash
+        run: |
+          channel=$(sed -n 's/^channel *= *"\(.*\)"/\1/p' otui-lsp/rust-toolchain.toml)
+          echo "channel=${channel:-stable}" >> "$GITHUB_OUTPUT"
+
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ steps.toolchain.outputs.channel }}
           targets: ${{ matrix.rust_target }}
 
       - uses: Swatinem/rust-cache@v2
