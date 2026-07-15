@@ -84,6 +84,25 @@ Turn the bridge off with `"otui.lua.enable": false` to skip indexing the workspa
 | **OTUI: Restart Language Server** | Restart `otui-lsp` without reloading the window. |
 | **OTUI: Show Language Server Output** | Open the server's log channel. |
 
+## Troubleshooting
+
+When something looks wrong, the first move is **OTUI: Show Language Server Output** — the log names
+which binary was launched, where it came from, and whether the server handshake completed. For a
+deeper look, set `"otui.trace.server": "verbose"` to see the LSP traffic itself.
+
+| Symptom | Cause & fix |
+|---|---|
+| **Nothing lights up — no diagnostics, no completion.** | You opened a single file. The server indexes across the workspace and the extension only activates on a folder that *contains* a `.otui`. Open the **folder** (`File → Open Folder`), not the file. |
+| **"Could not find the otui-lsp language server."** | No bundled binary and none on `PATH`. Either install a platform-specific package (which bundles one) or set `otui.server.path` to a binary you built. A path that is *set but missing* is a hard error by design — it never silently falls back. |
+| **Colors look flat or washed-out** once the file finishes loading. | You have `"editor.semanticHighlighting.enabled": false` in your settings. That flag turns off the server's semantic tokens, leaving only the coarser TextMate layer — which reads as "the colors got worse". Remove the flag; the two layers are meant to work together. |
+| **On Windows the extension installs but never loads.** | `code --install-extension foo.vsix` from the CLI can register the package without activating it. Install through the UI instead: **Extensions → `⋯` → Install from VSIX**. |
+| **Everything is disabled and the editor mentions "Restricted Mode".** | The extension launches a native binary, so it declares itself unsupported in untrusted workspaces and stays off until you **trust the folder** (the banner's *Trust* button, or `Workspaces: Manage Workspace Trust`). |
+| **The log shows `[error] otui-lsp: indexed 221 workspace .otui file(s)`.** | Not an error. The server writes progress to stderr on purpose (it is shutdown-safe), and the client surfaces any stderr at error level. A line like this means indexing *succeeded*. |
+
+Language behavior itself — a wrong diagnostic, a missing completion, a go-to-definition that lands
+in the wrong place — is the **server's** domain, not this client's. Those belong in the
+[`otui-lsp`](https://github.com/zoelner/otui-lsp/issues) tracker.
+
 ## Development
 
 Requires the current Node LTS (see `.nvmrc`).

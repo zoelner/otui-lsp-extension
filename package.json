@@ -158,6 +158,6 @@
   },
   "otuiLsp": {
     "repository": "https://github.com/zoelner/otui-lsp",
-    "ref": "main"
+    "ref": "v0.1.0"
   }
 }
