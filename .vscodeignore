@@ -1,8 +1,12 @@
 # Everything the extension needs at runtime is bundled into dist/ by esbuild, so the
 # sources, the toolchain and node_modules all stay out of the VSIX.
 # The server/ directory is NOT ignored — the platform-specific VSIX carries the binary.
+# Developer-facing docs live on GitHub, not in the installed extension. The user-facing README,
+# CHANGELOG and LICENSE files are kept.
 .github/**
 .vscode/**
+docs/**
+CONTRIBUTING.md
 node_modules/**
 out/**
 sample/**

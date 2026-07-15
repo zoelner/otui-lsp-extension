@@ -101,9 +101,13 @@ deeper look, set `"otui.trace.server": "verbose"` to see the LSP traffic itself.
 
 Language behavior itself — a wrong diagnostic, a missing completion, a go-to-definition that lands
 in the wrong place — is the **server's** domain, not this client's. Those belong in the
-[`otui-lsp`](https://github.com/zoelner/otui-lsp/issues) tracker.
+[`otui-lsp`](https://github.com/zoelner/otui-lsp/issues) tracker. [ARCHITECTURE](docs/ARCHITECTURE.md)
+explains where the line between the two repos falls.
 
 ## Development
+
+[CONTRIBUTING](CONTRIBUTING.md) is the full day-to-day guide, and [ARCHITECTURE](docs/ARCHITECTURE.md)
+explains the client/server split. The essentials:
 
 Requires the current Node LTS (see `.nvmrc`).
 

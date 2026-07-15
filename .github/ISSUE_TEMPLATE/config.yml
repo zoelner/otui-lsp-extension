@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Language behavior (diagnostics, completion, hover, go-to-definition, rename…)
+    url: https://github.com/zoelner/otui-lsp/issues/new
+    about: >
+      This repo is a thin client — all language intelligence lives in the otui-lsp server.
+      A wrong or missing diagnostic, completion, hover, definition, rename, or semantic-token
+      color is a server issue. Please file it there.
+  - name: Question or discussion
+    url: https://github.com/zoelner/otui-lsp-extension/discussions
+    about: For usage questions and open-ended discussion, prefer Discussions over an issue.

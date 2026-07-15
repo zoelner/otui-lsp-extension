@@ -31,6 +31,9 @@ Windsurf, VSCodium).
   sibling `.otui`, following style inheritance across files. The server serves only definition on
   Lua; a client-side middleware drops any diagnostics it might emit for `.lua`, so an OTUI parser is
   never allowed to flag valid Lua, and the Lua language server's own diagnostics are untouched.
+- A **Troubleshooting** guide in the README covering the recurring gotchas: opening a file instead
+  of a folder, a missing server binary, the semantic-highlighting flag flattening colors, the
+  Windows GUI-install requirement, Restricted Mode, and the benign stderr indexing line.
 
 ### Changed
 
