@@ -100,9 +100,21 @@ server repo where they belong.
 
 ## Releasing
 
-Releases are cut by tag and handled by CI; the full process is documented in the
-[README](README.md#releasing). In short: `otuiLsp.ref` in `package.json` pins the server revision to
-build, and pushing a `v*` tag builds one VSIX per platform and publishes to both registries.
+Releases are cut by tag. `.github/workflows/release.yml` builds `otui-lsp` natively for six target
+platforms, packages one VSIX per platform, and publishes to **both** registries.
+
+```bash
+git tag v0.1.0 && git push --tags
+```
+
+The server revision that gets built is pinned by `otuiLsp.ref` in `package.json` — keep it on an
+immutable ref (a server tag or a full commit SHA), never a moving branch like `main`, so the release
+builds a known-good server.
+
+One-time setup:
+
+- Create a Visual Studio Marketplace publisher and store a PAT as the `VSCE_PAT` secret.
+- Create the Open VSX namespace (`npx ovsx create-namespace zoelner`) and store a PAT as `OVSX_PAT`.
 
 ## License
 

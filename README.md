@@ -104,50 +104,11 @@ in the wrong place — is the **server's** domain, not this client's. Those belo
 [`otui-lsp`](https://github.com/zoelner/otui-lsp/issues) tracker. [ARCHITECTURE](docs/ARCHITECTURE.md)
 explains where the line between the two repos falls.
 
-## Development
+## Contributing
 
-[CONTRIBUTING](CONTRIBUTING.md) is the full day-to-day guide, and [ARCHITECTURE](docs/ARCHITECTURE.md)
-explains the client/server split. The essentials:
-
-Requires the current Node LTS (see `.nvmrc`).
-
-```bash
-npm install
-npm run check     # typecheck
-npm test          # grammar + binary-resolution tests
-npm run build     # bundle to dist/ with esbuild
-```
-
-Press **F5** to launch an Extension Development Host with `sample/` open. Have `otui-lsp` on your
-`PATH`, or set `otui.server.path`.
-
-### Version pinning, on purpose
-
-Three dependencies are deliberately held at a floor rather than kept latest, because they describe
-the **oldest** editor we support — and the forks lag upstream VS Code:
-
-- `engines.vscode` — the oldest editor that can install the extension.
-- `@types/vscode` — pinned **exactly** (no caret). A caret would resolve to the newest types and let
-  us compile against APIs that the floor does not have.
-- esbuild's `target` — the extension host's Node, not the Node we build with.
-
-`npm run check` is what enforces this: it typechecks against the floor's API surface.
-
-### Releasing
-
-Releases are cut by tag. `.github/workflows/release.yml` builds `otui-lsp` natively for six target
-platforms, packages one VSIX per platform, and publishes to **both** registries.
-
-```bash
-git tag v0.1.0 && git push --tags
-```
-
-The server revision that gets built is pinned by `otuiLsp.ref` in `package.json`.
-
-One-time setup:
-
-- Create a Visual Studio Marketplace publisher and store a PAT as the `VSCE_PAT` secret.
-- Create the Open VSX namespace (`npx ovsx create-namespace zoelner`) and store a PAT as `OVSX_PAT`.
+Development setup, the F5 dev loop, testing, the deliberate version pins and the release process
+live in [CONTRIBUTING](CONTRIBUTING.md). [ARCHITECTURE](docs/ARCHITECTURE.md) explains the
+client/server split — what belongs here versus in the server.
 
 ## License
 
