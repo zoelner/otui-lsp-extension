@@ -1,6 +1,6 @@
 {
   "name": "otui",
-  "displayName": "OTUI Language Support",
+  "displayName": "OTUI / OTML (OTClient UI)",
   "description": "Language support for OTUI/OTML (OTClient UI markup) — diagnostics, completion, hover, go-to-definition, rename, formatting and color swatches, powered by the otui-lsp language server.",
   "version": "0.1.0",
   "publisher": "zoelner",

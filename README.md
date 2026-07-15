@@ -1,4 +1,4 @@
-# OTUI Language Support
+# OTUI / OTML (OTClient UI)
 
 Editor support for **OTUI/OTML** (`.otui` / `.otmod` / `.otfont`), the UI markup language of the
 OTClient game client.

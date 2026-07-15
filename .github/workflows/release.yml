@@ -187,9 +187,11 @@ jobs:
             npx vsce publish --packagePath "$vsix"
           done
 
-      # Open VSX is what Cursor, Antigravity, Windsurf and VSCodium actually query.
+      # Open VSX is what Cursor, Antigravity, Windsurf and VSCodium actually query — the registry
+      # that matters most for the forks. `always()` runs it even if the Marketplace step above
+      # failed, so a Microsoft-side rejection cannot take Open VSX down with it.
       - name: Publish to Open VSX
-        if: env.OVSX_PAT != ''
+        if: always() && env.OVSX_PAT != ''
         run: |
           set -euo pipefail
           for vsix in vsix/*.vsix; do
